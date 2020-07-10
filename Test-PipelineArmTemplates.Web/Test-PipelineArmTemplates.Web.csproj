@@ -5,4 +5,8 @@
     <RootNamespace>Test_PipelineArmTemplates.Web</RootNamespace>
   </PropertyGroup>
 
+  <ItemGroup>
+    <Folder Include="pipelines\release\" />
+  </ItemGroup>
+
 </Project>
