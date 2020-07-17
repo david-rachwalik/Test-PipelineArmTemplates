@@ -8,17 +8,17 @@
 trigger:
 - master
 
-pool:
-  vmImage: 'ubuntu-latest'
-
-variables:
-  dotnetVersion: '3.1.x'
-  solution: '**/*.sln'
-  buildPlatform: 'AnyCPU'
-  buildConfiguration: 'Release'
-
 stages:
 - stage: Build
+  pool:
+    vmImage: 'ubuntu-latest'
+  variables:
+    dotnetVersion: '3.1.x'
+    solution: '**/*.sln'
+    buildPlatform: 'AnyCPU'
+    buildConfiguration: 'Release'
+    scriptName: 'migrations.sql'
+    dbContext: 'DefaultContext'
   jobs:
   - job: Build
     steps:
@@ -27,6 +27,15 @@ stages:
       inputs:
         version: '$(dotnetVersion)'
         packageType: runtime
+        
+    - script: dotnet tool install --global dotnet-ef
+      displayName: 'Install .NET EF Core'
+
+    - script: echo This is pipeline $(System.DefinitionId)
+
+    - script: echo The IP address is $(IP_ADDR)
+
+
 
     - task: NuGetToolInstaller@1
       displayName: 'Install NuGet'
@@ -42,6 +51,14 @@ stages:
         command: 'build'
         arguments: '--configuration $(buildConfiguration)'
 
+    # --- Generate Migration SQL Script ---
+    - script: >-
+        dotnet ef migrations script
+        --output $(Build.ArtifactStagingDirectory)\sql\$(scriptName)
+        --context $(dbContext)
+        --idempotent
+      displayName: 'Generate migration script'
+
     - task: DotNetCoreCLI@2
       displayName: 'dotnet test $(buildConfiguration)'
       inputs:
@@ -49,16 +66,90 @@ stages:
         projects: '**/*Tests/*.csproj'
         arguments: '--configuration $(buildConfiguration)'
 
+    # Provides zip file for web app service
     - task: DotNetCoreCLI@2
       displayName: 'Stage build output'
       inputs:
         command: publish
         publishWebProjects: True
-        arguments: '--configuration $(BuildConfiguration) --output $(Build.ArtifactStagingDirectory)'
+        arguments: '--configuration $(buildConfiguration) --output $(Build.ArtifactStagingDirectory)'
         zipAfterPublish: True
 
+    # Provides dacpac file for database
+    - task: CopyFiles@2
+      displayName: 'Copy files to: $(Build.ArtifactStagingDirectory)'
+      inputs:
+        # sourceFolder: $(Agent.BuildDirectory)
+        sourceFolder: '$(System.DefaultWorkingDirectory)'
+        contents: '**\bin\$(buildConfiguration)\**'
+        targetFolder: '$(Build.ArtifactStagingDirectory)'
+
     - task: PublishBuildArtifacts@1
-      displayName: 'Publish build artifacts'
+      displayName: 'Publish build artifact: drop'
       inputs:
         pathtoPublish: '$(Build.ArtifactStagingDirectory)' 
         artifactName: 'drop'
+
+
+- stage: Development
+  dependsOn: Build
+  pool:
+    vmImage: 'ubuntu-latest'
+  variables:
+    azureSubscription: 'Pay-As-You-Go'
+    resourceGroup: '[resourceGroup().name]'
+    location: '[resourceGroup().location]'
+    scriptName: 'migrations.sql'
+  jobs:
+  - job: Deploy
+    steps:
+    # - task: AzureRmWebAppDeployment@4
+    #   displayName: 'Deploy Azure App Service'
+    #   inputs:
+    #     azureSubscription: 'Pay-As-You-Go'
+    #     WebAppName: 'Test-PipelineArmTemplates-Ubuntu'
+
+    # https://docs.microsoft.com/en-us/azure/devops/pipelines/tasks/deploy/azure-resource-group-deployment
+    - task: AzureResourceGroupDeployment@2
+      displayName: 'Deploy ARM template to resource group'
+      inputs:
+        azureSubscription: '$(azureSubscription)'
+        action: 'Create Or Update Resource Group'
+        resourceGroupName: '$(resourceGroup)'
+        location: '$(location)'
+        templateLocation: 'Linked artifact'
+        csmFile: '$(Build.ArtifactStagingDirectory)/azuredeploy.json'
+        # csmParametersFile: '$(Build.ArtifactStagingDirectory)/azuredeploy.parameters.json'
+        overrideParameters: >-
+          -siteName $(siteName)
+          -administratorLogin $(adminUser)
+          -administratorLoginPassword $(ARM_PASS)
+        deploymentMode: 'Incremental'
+
+    # # https://github.com/microsoft/azure-pipelines-tasks/tree/master/Tasks/AzureResourceManagerTemplateDeploymentV3
+    # - task: AzureResourceManagerTemplateDeployment@3
+    #   displayName: 'Deploy ARM template to resource group'
+    #   inputs:
+    #     deploymentScope: 'Resource Group'
+    #     azureResourceManagerConnection: '<your-resource-manager-connection>'
+    #     subscriptionId: '$(azureSubscription)'
+    #     action: 'Create Or Update Resource Group'
+    #     resourceGroupName: '$(resourceGroup)'
+    #     location: '$(location)'
+    #     templateLocation: 'Linked artifact'
+    #     csmFile: '$(Build.ArtifactStagingDirectory)/azuredeploy.json'
+    #     csmParametersFile: '$(Build.ArtifactStagingDirectory)/azuredeploy.parameters.json'
+    #     # overrideParameters: '-siteName $(siteName) -administratorLogin $(adminUser) -administratorLoginPassword $(ARM_PASS)'
+    #     deploymentMode: 'Incremental'
+
+    - task: SqlAzureDacpacDeployment@1
+      displayName: 'Deploy database migrations'
+      inputs:
+        azureSubscription: '$(Parameters.ConnectedServiceName)'
+        authenticationType: 'server'
+        serverName: '$(Parameters.sqlServerName)'
+        databaseName: '$(Parameters.sqlDatabaseName)'
+        sqlUsername: '$(sqlUsername)' # from key vault
+        sqlPassword: '$(sqlPassword)'
+        dacpacFile: '$(Build.ArtifactStagingDirectory)\sql\$(scriptName)'
+        ipDetectionMethod: 'AutoDetect'
