@@ -100,9 +100,19 @@ stages:
     resourceGroup: '[resourceGroup().name]'
     location: '[resourceGroup().location]'
     scriptName: 'migrations.sql'
+    WebAppName: 'Test-PipelineArmTemplates-Ubuntu'
   jobs:
   - job: Deploy
     steps:
+    # https://docs.microsoft.com/en-us/azure/devops/pipelines/tasks/deploy/azure-key-vault
+    - task: AzureKeyVault@1
+      displayName: 'Gather Azure Key Vault secrets'
+      inputs:
+        azureSubscription: '$(azureSubscription)'
+        keyVaultName: '$(resourceGroup)'
+        secretsFilter: '*'
+        runAsPreJob: false # Azure DevOps Services only
+
     # # https://docs.microsoft.com/en-us/azure/devops/pipelines/tasks/deploy/azure-resource-group-deployment
     # - task: AzureResourceGroupDeployment@2
     #   displayName: 'Deploy ARM template to resource group'
@@ -139,17 +149,19 @@ stages:
     # - task: AzureRmWebAppDeployment@4
     #   displayName: 'Deploy Azure App Service'
     #   inputs:
-    #     azureSubscription: 'Pay-As-You-Go'
-    #     WebAppName: 'Test-PipelineArmTemplates-Ubuntu'
+    #     azureSubscription: '$(azureSubscription)'
+    #     WebAppName: '$(WebAppName)'
 
-    - task: SqlAzureDacpacDeployment@1
-      displayName: 'Deploy database migrations'
-      inputs:
-        azureSubscription: '$(Parameters.ConnectedServiceName)'
-        authenticationType: 'server'
-        serverName: '$(Parameters.sqlServerName)'
-        databaseName: '$(Parameters.sqlDatabaseName)'
-        sqlUsername: '$(sqlUsername)' # from key vault
-        sqlPassword: '$(sqlPassword)'
-        dacpacFile: '$(Build.ArtifactStagingDirectory)\sql\$(scriptName)'
-        ipDetectionMethod: 'AutoDetect'
+    # # https://docs.microsoft.com/en-us/azure/devops/pipelines/tasks/deploy/sql-azure-dacpac-deployment
+    # - task: SqlAzureDacpacDeployment@1
+    #   displayName: 'Deploy database migrations'
+    #   inputs:
+    #     # azureSubscription: '$(Parameters.ServiceConnectionName)'
+    #     azureSubscription: '$(azureSubscription)'
+    #     authenticationType: 'server'
+    #     serverName: '$(Parameters.sqlServerName)'
+    #     databaseName: '$(Parameters.sqlDatabaseName)'
+    #     sqlUsername: '$(sqlUsername)' # from key vault
+    #     sqlPassword: '$(sqlPassword)'
+    #     dacpacFile: '$(Build.ArtifactStagingDirectory)\sql\$(scriptName)'
+    #     ipDetectionMethod: 'AutoDetect'
