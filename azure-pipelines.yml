@@ -103,28 +103,22 @@ stages:
   jobs:
   - job: Deploy
     steps:
-    # - task: AzureRmWebAppDeployment@4
-    #   displayName: 'Deploy Azure App Service'
+    # # https://docs.microsoft.com/en-us/azure/devops/pipelines/tasks/deploy/azure-resource-group-deployment
+    # - task: AzureResourceGroupDeployment@2
+    #   displayName: 'Deploy ARM template to resource group'
     #   inputs:
-    #     azureSubscription: 'Pay-As-You-Go'
-    #     WebAppName: 'Test-PipelineArmTemplates-Ubuntu'
-
-    # https://docs.microsoft.com/en-us/azure/devops/pipelines/tasks/deploy/azure-resource-group-deployment
-    - task: AzureResourceGroupDeployment@2
-      displayName: 'Deploy ARM template to resource group'
-      inputs:
-        azureSubscription: '$(azureSubscription)'
-        action: 'Create Or Update Resource Group'
-        resourceGroupName: '$(resourceGroup)'
-        location: '$(location)'
-        templateLocation: 'Linked artifact'
-        csmFile: '$(Build.ArtifactStagingDirectory)/azuredeploy.json'
-        # csmParametersFile: '$(Build.ArtifactStagingDirectory)/azuredeploy.parameters.json'
-        overrideParameters: >-
-          -siteName $(siteName)
-          -administratorLogin $(adminUser)
-          -administratorLoginPassword $(ARM_PASS)
-        deploymentMode: 'Incremental'
+    #     azureSubscription: '$(azureSubscription)'
+    #     action: 'Create Or Update Resource Group'
+    #     resourceGroupName: '$(resourceGroup)'
+    #     location: '$(location)'
+    #     templateLocation: 'Linked artifact'
+    #     csmFile: '$(Build.ArtifactStagingDirectory)/azuredeploy.json'
+    #     # csmParametersFile: '$(Build.ArtifactStagingDirectory)/azuredeploy.parameters.json'
+    #     overrideParameters: >-
+    #       -siteName $(siteName)
+    #       -administratorLogin $(adminUser)
+    #       -administratorLoginPassword $(ARM_PASS)
+    #     deploymentMode: 'Incremental'
 
     # # https://github.com/microsoft/azure-pipelines-tasks/tree/master/Tasks/AzureResourceManagerTemplateDeploymentV3
     # - task: AzureResourceManagerTemplateDeployment@3
@@ -141,6 +135,12 @@ stages:
     #     csmParametersFile: '$(Build.ArtifactStagingDirectory)/azuredeploy.parameters.json'
     #     # overrideParameters: '-siteName $(siteName) -administratorLogin $(adminUser) -administratorLoginPassword $(ARM_PASS)'
     #     deploymentMode: 'Incremental'
+
+    # - task: AzureRmWebAppDeployment@4
+    #   displayName: 'Deploy Azure App Service'
+    #   inputs:
+    #     azureSubscription: 'Pay-As-You-Go'
+    #     WebAppName: 'Test-PipelineArmTemplates-Ubuntu'
 
     - task: SqlAzureDacpacDeployment@1
       displayName: 'Deploy database migrations'
