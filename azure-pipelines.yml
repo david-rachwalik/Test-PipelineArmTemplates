@@ -108,8 +108,9 @@ stages:
     - task: AzureKeyVault@1
       displayName: "Gather Azure Key Vault secrets"
       inputs:
-        azureSubscription: "$(azureSubscription)"
+        # azureSubscription: "$(azureSubscription)"
         # azureSubscription: "[subscription().subscriptionId]"
+        azureSubscription: "Pay-As-You-Go"
         keyVaultName: "$(resourceGroup)"
         secretsFilter: "*"
         runAsPreJob: false # Azure DevOps Services only
