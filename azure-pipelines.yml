@@ -31,12 +31,15 @@ stages:
     - script: dotnet tool install --global dotnet-ef
       displayName: "Install .NET EF Core"
 
-    # - script: echo This is pipeline $(System.DefinitionId)      # 8
+    - script: echo This is pipeline $(System.DefinitionId)      # 8
     # - script: echo The IP address is $(IP_ADDR)                 # command not found
 
-    - script: echo pwd
-    - script: echo ls
-    - script: echo ls -la
+    - bash: "echo pwd $(Build.ArtifactStagingDirectory)"
+    - bash: "echo ls $(Build.ArtifactStagingDirectory)"
+    - bash: "echo ls -la $(Build.ArtifactStagingDirectory)"
+
+    # https://docs.microsoft.com/en-us/azure/devops/pipelines/build/variables
+    - bash: "echo ls -la $(Agent.BuildDirectory)"
 
 
     - task: NuGetToolInstaller@1
