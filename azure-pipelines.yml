@@ -32,14 +32,15 @@ stages:
       displayName: "Install .NET EF Core"
 
     - script: echo This is pipeline $(System.DefinitionId)      # 8
-    # - script: echo The IP address is $(IP_ADDR)                 # command not found
+    # - script: echo The IP address is $(IP_ADDR)               # command not found
 
     - bash: "echo pwd $(Build.ArtifactStagingDirectory)"
     - bash: "echo ls $(Build.ArtifactStagingDirectory)"
-    - bash: "echo ls -la $(Build.ArtifactStagingDirectory)"
+    - bash: "echo ls -la $(Build.ArtifactStagingDirectory)"     # /home/vsts/work/1/a
 
     # https://docs.microsoft.com/en-us/azure/devops/pipelines/build/variables
-    - bash: "echo ls -la $(Agent.BuildDirectory)"
+    - bash: "echo ls -la $(Agent.BuildDirectory)"               # /home/vsts/work/1
+    - bash: "echo ls -la $(Build.SourcesDirectory)"
 
 
     - task: NuGetToolInstaller@1
@@ -56,13 +57,20 @@ stages:
         command: "build"
         arguments: "--configuration $(buildConfiguration)"
 
+    # Build Restored /home/vsts/work/1/s/Test-PipelineArmTemplates.Web/Test-PipelineArmTemplates.Web.csproj (in 152 ms).
+    # Test-PipelineArmTemplates.Web -> /home/vsts/work/1/s/Test-PipelineArmTemplates.Web/bin/Release/netcoreapp3.1/Test-PipelineArmTemplates.Web.dll
+    # Test-PipelineArmTemplates.Web -> /home/vsts/work/1/s/Test-PipelineArmTemplates.Web/bin/Release/netcoreapp3.1/Test-PipelineArmTemplates.Web.Views.dll
+
+
     # --- Generate Migration SQL Script ---
     - script: >-
         dotnet ef migrations script
-        --output $(Build.ArtifactStagingDirectory)\sql\$(scriptName)
+        --output $(Build.ArtifactStagingDirectory)/sql/$(scriptName)
         --context $(dbContext)
         --idempotent
       displayName: "Generate migration script"
+      # https://docs.microsoft.com/en-us/azure/devops/pipelines/tasks/utility/command-line
+      workingDirectory: "$(Agent.BuildDirectory)/s/Test-PipelineArmTemplates.Web/bin/Release/netcoreapp3.1"
 
     - task: DotNetCoreCLI@2
       displayName: "dotnet test $(buildConfiguration)"
