@@ -13,7 +13,7 @@ stages:
   pool:
     vmImage: "ubuntu-latest"
   variables:
-    dotnetVersion: "3.1.x"
+    dotnetRuntimeVersion: "3.1.x"
     solution: "**/*.sln"
     buildPlatform: "AnyCPU"
     buildConfiguration: "Release"
@@ -25,7 +25,7 @@ stages:
     - task: UseDotNet@2
       displayName: "Install .NET Core SDK"
       inputs:
-        version: "$(dotnetVersion)"
+        version: "$(dotnetRuntimeVersion)"
         packageType: runtime
         
     - script: dotnet tool install --global dotnet-ef
@@ -40,7 +40,7 @@ stages:
 
     # https://docs.microsoft.com/en-us/azure/devops/pipelines/build/variables
     - bash: "echo ls -la $(Agent.BuildDirectory)"               # /home/vsts/work/1
-    - bash: "echo ls -la $(Build.SourcesDirectory)"
+    - bash: "echo ls -la $(Build.SourcesDirectory)"             # /home/vsts/work/1/s
 
 
     - task: NuGetToolInstaller@1
@@ -66,11 +66,13 @@ stages:
     - script: >-
         dotnet ef migrations script
         --output $(Build.ArtifactStagingDirectory)/sql/$(scriptName)
-        --context $(dbContext)
         --idempotent
+      # --context $(dbContext)
+      # --runtime version: "$(dotnetRuntimeVersion)"
       displayName: "Generate migration script"
       # https://docs.microsoft.com/en-us/azure/devops/pipelines/tasks/utility/command-line
-      workingDirectory: "$(Agent.BuildDirectory)/s/Test-PipelineArmTemplates.Web/bin/Release/netcoreapp3.1"
+      # workingDirectory: "$(Agent.BuildDirectory)/s/Test-PipelineArmTemplates.Web/bin/Release/netcoreapp3.1"
+      workingDirectory: "$(Build.SourcesDirectory)/Test-PipelineArmTemplates.Web"
 
     - task: DotNetCoreCLI@2
       displayName: "dotnet test $(buildConfiguration)"
