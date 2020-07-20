@@ -81,7 +81,7 @@ stages:
       inputs:
         # sourceFolder: $(Agent.BuildDirectory)
         sourceFolder: "$(System.DefaultWorkingDirectory)"
-        contents: "**\bin\$(buildConfiguration)\**"
+        contents: "**\\bin\\$(buildConfiguration)\\**"
         targetFolder: "$(Build.ArtifactStagingDirectory)"
 
     - task: PublishBuildArtifacts@1
@@ -164,5 +164,5 @@ stages:
     #     databaseName: "$(Parameters.sqlDatabaseName)"
     #     sqlUsername: "$(sqlUsername)" # from key vault
     #     sqlPassword: "$(sqlPassword)"
-    #     dacpacFile: "$(Build.ArtifactStagingDirectory)\sql\$(scriptName)"
+    #     dacpacFile: "$(Build.ArtifactStagingDirectory)\\sql\\$(scriptName)"
     #     ipDetectionMethod: "AutoDetect"
