@@ -31,10 +31,12 @@ stages:
     - script: dotnet tool install --global dotnet-ef
       displayName: "Install .NET EF Core"
 
-    - script: echo This is pipeline $(System.DefinitionId)
+    # - script: echo This is pipeline $(System.DefinitionId)      # 8
+    # - script: echo The IP address is $(IP_ADDR)                 # command not found
 
-    - script: echo The IP address is $(IP_ADDR)
-
+    - script: echo pwd
+    - script: echo ls
+    - script: echo ls -la
 
 
     - task: NuGetToolInstaller@1
