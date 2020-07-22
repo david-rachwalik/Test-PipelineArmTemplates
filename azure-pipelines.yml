@@ -27,11 +27,9 @@ stages:
       inputs:
         version: "$(dotnetRuntimeVersion)"
         packageType: runtime
-        
-    - script: >-
-        dotnet tool install
-        --global dotnet-ef
-        --version $(dotnetRuntimeVersion)
+    
+    # Omit '--version' here and let SDK find correct EF package
+    - script: dotnet tool install --global dotnet-ef
       displayName: "Install .NET EF Core"
 
     - script: echo This is pipeline $(System.DefinitionId)      # 8
@@ -68,6 +66,10 @@ stages:
     - bash: "ls -la $(Agent.BuildDirectory)"                    # /home/vsts/work/1         # returned TestResults, a, b, s
     - bash: "ls -la $(Build.ArtifactStagingDirectory)"          # /home/vsts/work/1/a
     - bash: "ls -la $(Build.SourcesDirectory)"                  # /home/vsts/work/1/s
+
+    - bash: "pwd $(System.DefaultWorkingDirectory)"
+    - bash: "ls -la $(System.DefaultWorkingDirectory)"
+    
 
 
     # - script: >-
