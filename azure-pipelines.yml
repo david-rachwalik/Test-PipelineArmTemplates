@@ -32,18 +32,6 @@ stages:
     - script: dotnet tool install --global dotnet-ef
       displayName: "Install .NET EF Core"
 
-    - script: echo This is pipeline $(System.DefinitionId)      # 8
-    # - script: echo The IP address is $(IP_ADDR)               # command not found
-
-    - bash: pwd
-    - bash: "pwd $(Build.ArtifactStagingDirectory)"             # somehow returned /home/vsts/work/1/s
-    
-    # https://docs.microsoft.com/en-us/azure/devops/pipelines/build/variables
-    - bash: "ls -la $(Agent.BuildDirectory)"                    # /home/vsts/work/1         # returned TestResults, a, b, s
-    - bash: "ls -la $(Build.ArtifactStagingDirectory)"          # /home/vsts/work/1/a
-    - bash: "ls -la $(Build.SourcesDirectory)"                  # /home/vsts/work/1/s
-
-
     - task: NuGetToolInstaller@1
       displayName: "Install NuGet"
 
@@ -63,12 +51,13 @@ stages:
     # Test-PipelineArmTemplates.Web -> /home/vsts/work/1/s/Test-PipelineArmTemplates.Web/bin/Release/netcoreapp3.1/Test-PipelineArmTemplates.Web.Views.dll
 
 
+  
+    - script: echo This is pipeline $(System.DefinitionId)      # 8
+    - bash: pwd                                                 # /home/vsts/work/1/s       # same as $(System.DefaultWorkingDirectory)
+    # https://docs.microsoft.com/en-us/azure/devops/pipelines/build/variables
     - bash: "ls -la $(Agent.BuildDirectory)"                    # /home/vsts/work/1         # returned TestResults, a, b, s
     - bash: "ls -la $(Build.ArtifactStagingDirectory)"          # /home/vsts/work/1/a
     - bash: "ls -la $(Build.SourcesDirectory)"                  # /home/vsts/work/1/s
-
-    - bash: "pwd $(System.DefaultWorkingDirectory)"
-    - bash: "ls -la $(System.DefaultWorkingDirectory)"
     
 
 
@@ -83,6 +72,7 @@ stages:
     # https://docs.microsoft.com/en-us/ef/core/miscellaneous/cli/dotnet
     - script: >-
         dotnet ef migrations script
+        --project **.sln
         --output $(Build.ArtifactStagingDirectory)/sql/$(scriptName)
         --idempotent
       # --runtime version: "$(dotnetRuntimeVersion)"
@@ -90,7 +80,7 @@ stages:
       # https://docs.microsoft.com/en-us/azure/devops/pipelines/tasks/utility/command-line
       # workingDirectory: "$(Agent.BuildDirectory)/s/Test-PipelineArmTemplates.Web/bin/Release/netcoreapp3.1"
       # workingDirectory: "$(Build.SourcesDirectory)/Test-PipelineArmTemplates.Web"
-      workingDirectory: "$(Build.SourcesDirectory)"
+      # workingDirectory: "$(Build.SourcesDirectory)/Test-PipelineArmTemplates.Web"
       # *ERROR: Test-PipelineArmTemplates.Web must reference 'Microsoft.EntityFrameworkCore.Design' package
 
       
