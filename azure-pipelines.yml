@@ -34,13 +34,13 @@ stages:
     - script: echo This is pipeline $(System.DefinitionId)      # 8
     # - script: echo The IP address is $(IP_ADDR)               # command not found
 
-    - bash: "echo pwd $(Build.ArtifactStagingDirectory)"
-    - bash: "echo ls $(Build.ArtifactStagingDirectory)"
-    - bash: "echo ls -la $(Build.ArtifactStagingDirectory)"     # /home/vsts/work/1/a
+    - bash: "pwd $(Build.ArtifactStagingDirectory)"
+    - bash: "ls $(Build.ArtifactStagingDirectory)"
+    - bash: "ls -la $(Build.ArtifactStagingDirectory)"     # /home/vsts/work/1/a
 
     # https://docs.microsoft.com/en-us/azure/devops/pipelines/build/variables
-    - bash: "echo ls -la $(Agent.BuildDirectory)"               # /home/vsts/work/1
-    - bash: "echo ls -la $(Build.SourcesDirectory)"             # /home/vsts/work/1/s
+    - bash: "ls -la $(Agent.BuildDirectory)"               # /home/vsts/work/1
+    - bash: "ls -la $(Build.SourcesDirectory)"             # /home/vsts/work/1/s
 
 
     - task: NuGetToolInstaller@1
@@ -62,17 +62,26 @@ stages:
     # Test-PipelineArmTemplates.Web -> /home/vsts/work/1/s/Test-PipelineArmTemplates.Web/bin/Release/netcoreapp3.1/Test-PipelineArmTemplates.Web.Views.dll
 
 
-    # --- Generate Migration SQL Script ---
+    # - script: >-
+    #     dotnet ef migrations script
+    #     --startup-project $(Build.SourcesDirectory)
+    #     --context $(dbContext)
+    #     --configuration $(buildConfiguration)
+    #     --output $(Build.ArtifactStagingDirectory)/sql/$(scriptName)
+    #     --idempotent
+      
+    # https://docs.microsoft.com/en-us/ef/core/miscellaneous/cli/dotnet
     - script: >-
         dotnet ef migrations script
         --output $(Build.ArtifactStagingDirectory)/sql/$(scriptName)
         --idempotent
-      # --context $(dbContext)
       # --runtime version: "$(dotnetRuntimeVersion)"
-      displayName: "Generate migration script"
+      displayName: "Generate SQL migration script"
       # https://docs.microsoft.com/en-us/azure/devops/pipelines/tasks/utility/command-line
       # workingDirectory: "$(Agent.BuildDirectory)/s/Test-PipelineArmTemplates.Web/bin/Release/netcoreapp3.1"
-      workingDirectory: "$(Build.SourcesDirectory)/Test-PipelineArmTemplates.Web"
+      # workingDirectory: "$(Build.SourcesDirectory)/Test-PipelineArmTemplates.Web"
+      workingDirectory: "$(Build.SourcesDirectory)"
+      # *ERROR: Test-PipelineArmTemplates.Web must reference 'Microsoft.EntityFrameworkCore.Design' package
 
     - task: DotNetCoreCLI@2
       displayName: "dotnet test $(buildConfiguration)"
