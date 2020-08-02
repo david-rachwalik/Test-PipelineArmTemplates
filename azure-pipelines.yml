@@ -5,6 +5,11 @@
 
 # https://docs.microsoft.com/en-us/azure/devops/pipelines/ecosystems/dotnet-core
 
+parameters:
+- name: appProject
+  type: string
+  default: Test-PipelineArmTemplates.Web
+
 trigger:
 - master
 
@@ -52,12 +57,14 @@ stages:
 
 
   
-    - script: echo This is pipeline $(System.DefinitionId)      # 8
-    - bash: pwd                                                 # /home/vsts/work/1/s       # same as $(System.DefaultWorkingDirectory)
+    # - script: echo This is pipeline $(System.DefinitionId)      # 8
+    # - bash: pwd                                                 # /home/vsts/work/1/s       # same as $(System.DefaultWorkingDirectory)
     # https://docs.microsoft.com/en-us/azure/devops/pipelines/build/variables
-    - bash: "ls -la $(Agent.BuildDirectory)"                    # /home/vsts/work/1         # returned TestResults, a, b, s
-    - bash: "ls -la $(Build.ArtifactStagingDirectory)"          # /home/vsts/work/1/a
-    - bash: "ls -la $(Build.SourcesDirectory)"                  # /home/vsts/work/1/s
+    # - bash: "ls -la $(Agent.BuildDirectory)"                    # /home/vsts/work/1         # returned [Nuget, TestResults, a, b, s]
+    # - bash: "ls -la $(Build.ArtifactStagingDirectory)"          # /home/vsts/work/1/a
+    #   * was empty
+    # - bash: "ls -la $(Build.SourcesDirectory)"                  # /home/vsts/work/1/s
+    #   * directory contains: [.git, .gitattributes, .gitignore, .vscode, Test-PipelineArmTemplates.Web, Test-PipelineArmTemplates.sln, azure-pipelines.yml]
     
 
 
@@ -72,15 +79,15 @@ stages:
     # https://docs.microsoft.com/en-us/ef/core/miscellaneous/cli/dotnet
     - script: >-
         dotnet ef migrations script
-        --project **.sln
         --output $(Build.ArtifactStagingDirectory)/sql/$(scriptName)
         --idempotent
+      # --project **/*.sln
       # --runtime version: "$(dotnetRuntimeVersion)"
       displayName: "Generate SQL migration script"
       # https://docs.microsoft.com/en-us/azure/devops/pipelines/tasks/utility/command-line
       # workingDirectory: "$(Agent.BuildDirectory)/s/Test-PipelineArmTemplates.Web/bin/Release/netcoreapp3.1"
       # workingDirectory: "$(Build.SourcesDirectory)/Test-PipelineArmTemplates.Web"
-      # workingDirectory: "$(Build.SourcesDirectory)/Test-PipelineArmTemplates.Web"
+      workingDirectory: "$(Build.SourcesDirectory)/${{ parameters.appProject }}"
       # *ERROR: Test-PipelineArmTemplates.Web must reference 'Microsoft.EntityFrameworkCore.Design' package
 
       
@@ -109,8 +116,7 @@ stages:
     - task: CopyFiles@2
       displayName: "Copy files to: $(Build.ArtifactStagingDirectory)"
       inputs:
-        # sourceFolder: $(Agent.BuildDirectory)
-        sourceFolder: "$(System.DefaultWorkingDirectory)"
+        sourceFolder: "$(Build.SourcesDirectory)"
         contents: "**\\bin\\$(buildConfiguration)\\**"
         targetFolder: "$(Build.ArtifactStagingDirectory)"
 
@@ -120,6 +126,11 @@ stages:
         pathtoPublish: "$(Build.ArtifactStagingDirectory)" 
         artifactName: "drop"
 
+  
+    - bash: "ls -la $(Agent.BuildDirectory)"                    # /home/vsts/work/1         # returned TestResults, a, b, s
+    - bash: "ls -la $(Build.ArtifactStagingDirectory)"          # /home/vsts/work/1/a
+    - bash: "ls -la $(Build.SourcesDirectory)"                  # /home/vsts/work/1/s
+    
 
 - stage: Development
   dependsOn: Build
